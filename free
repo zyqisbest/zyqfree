@@ -1,0 +1,69 @@
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("https://discord.gg/fz8nyX8FZW made by zyq#9999", "DarkTheme")
+
+-- MAIN -- 
+local Main = Window:NewTab("Main")
+local MainSection = Main:NewSection("Main")
+
+
+MainSection:NewButton("FLY", "idk u fly i guess", function()
+    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/Fly.txt"))()
+end)
+
+MainSection:NewButton("Aimbot", "cause u have shit aim im guessing", function()
+    loadstring(game:HttpGet("loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/WRD%20Aimbot.txt"))()"))()
+end)
+
+MainSection:NewToggle("Super Human", "strong", function(state)
+    if state then
+        game.Players.LocalPlayer.Character.Humanoid.Walkspeed = 150
+        game.Players.LocalPlayer.Character.Humanoid.JumpPower = 150
+    else
+        game.Players.LocalPlayer.Character.Humanoid.Walkspeed = 16
+        game.Players.LocalPlayer.Character.Humanoid.JumpPower = 50
+    end
+end)
+
+MainSection:NewButton("Click Teleport (check desc)", "ctrl + click", function()
+    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/Click%20Teleport.txt"))()
+end)
+
+MainSection:NewButton("BTOOLS", "u shold know it", function()
+    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/BTools.txt"))()
+end)
+
+MainSection:NewButton("TP", "tp to someone", function()
+    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/Teleport%20To%20Player.txt"))()
+end)
+
+MainSection:NewButton("Infinte Jump", "jump a lot", function()
+    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/Infinite%20Jump.txt"))()
+end)
+
+-- HUBS --
+local Hubs = Window:NewTab("Hubs")
+local HubsSection = Hubs:NewSection("Hubs")
+
+MainSection:NewButton("Owl hub", "OWL HUB", function()
+    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/OwlHub.txt"))()
+end)
+
+MainSection:NewButton("EZ Hub", "EZ HUB", function()
+    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/Ez%20Hub.txt"))()
+end)
+
+MainSection:NewButton("Rogue Hub", "ROGUE HUB", function()
+    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/Rogue%20Hub.txt"))()
+end)
+
+-- CREDITS -- 
+local Credits = Window:NewTab("Credits")
+local CreditsSection = Hubs:NewSection("Credits")
+
+print("the cool develpoer that made this was zyq#9999")
+
+print("roblox script server: https://discord.gg/fz8nyX8FZW zyq's server: https://discord.gg/6SBjN6dT8j ")
+
+print("https://wearedevs.net/scripts for scripts")
+
+print(" THIS IS THE FREE VERSION! JOIN THE DISCORD FOR THE PAID VERSION")
