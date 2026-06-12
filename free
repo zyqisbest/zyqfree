@@ -1,5 +1,64 @@
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("https://discord.gg/fz8nyX8FZW made by zyq#9999", "DarkTheme")
+-- Allowed remote script domains (whitelist)
+local ALLOWED_DOMAINS = {
+    "raw.githubusercontent.com",
+    "cdn.wearedevs.net",
+}
+
+local function isDomainAllowed(url)
+    for _, domain in ipairs(ALLOWED_DOMAINS) do
+        if string.find(url, domain, 1, true) then
+            return true
+        end
+    end
+    return false
+end
+
+local function safeLoadUrl(url)
+    if type(url) ~= "string" or url == "" then
+        warn("[SafeLoad] Invalid URL")
+        return nil
+    end
+
+    if not string.match(url, "^https://") then
+        warn("[SafeLoad] Blocked non-HTTPS URL: " .. url)
+        return nil
+    end
+
+    if not isDomainAllowed(url) then
+        warn("[SafeLoad] Blocked untrusted domain: " .. url)
+        return nil
+    end
+
+    local ok, source = pcall(function()
+        return game:HttpGet(url)
+    end)
+
+    if not ok or type(source) ~= "string" or source == "" then
+        warn("[SafeLoad] Failed to fetch: " .. url)
+        return nil
+    end
+
+    local fn, compileErr = loadstring(source)
+    if not fn then
+        warn("[SafeLoad] Compile error from " .. url .. ": " .. tostring(compileErr))
+        return nil
+    end
+
+    local success, result = pcall(fn)
+    if not success then
+        warn("[SafeLoad] Runtime error from " .. url .. ": " .. tostring(result))
+        return nil
+    end
+
+    return result
+end
+
+local Library = safeLoadUrl("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua")
+if not Library then
+    warn("Failed to load UI library — aborting.")
+    return
+end
+local Window = Library.CreateLib("Free Script Hub", "DarkTheme")
 
 -- Helper: safely load and execute a remote script, warning on failure
 local function safeLoadUrl(url)
@@ -90,10 +149,5 @@ end)
 local Credits = Window:NewTab("Credits")
 local CreditsSection = Credits:NewSection("Credits")
 
-print("the cool develpoer that made this was zyq#9999")
-
-print("roblox script server: https://discord.gg/fz8nyX8FZW zyq's server: https://discord.gg/6SBjN6dT8j ")
-
-print("https://wearedevs.net/scripts for scripts")
-
-print(" THIS IS THE FREE VERSION! JOIN THE DISCORD FOR THE PAID VERSION")
+print("Script hub loaded successfully")
+print("THIS IS THE FREE VERSION! JOIN THE DISCORD FOR THE PAID VERSION")
