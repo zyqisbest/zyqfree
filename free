@@ -1,5 +1,64 @@
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("https://discord.gg/fz8nyX8FZW made by zyq#9999", "DarkTheme")
+-- Allowed remote script domains (whitelist)
+local ALLOWED_DOMAINS = {
+    "raw.githubusercontent.com",
+    "cdn.wearedevs.net",
+}
+
+local function isDomainAllowed(url)
+    for _, domain in ipairs(ALLOWED_DOMAINS) do
+        if string.find(url, domain, 1, true) then
+            return true
+        end
+    end
+    return false
+end
+
+local function safeLoadUrl(url)
+    if type(url) ~= "string" or url == "" then
+        warn("[SafeLoad] Invalid URL")
+        return nil
+    end
+
+    if not string.match(url, "^https://") then
+        warn("[SafeLoad] Blocked non-HTTPS URL: " .. url)
+        return nil
+    end
+
+    if not isDomainAllowed(url) then
+        warn("[SafeLoad] Blocked untrusted domain: " .. url)
+        return nil
+    end
+
+    local ok, source = pcall(function()
+        return game:HttpGet(url)
+    end)
+
+    if not ok or type(source) ~= "string" or source == "" then
+        warn("[SafeLoad] Failed to fetch: " .. url)
+        return nil
+    end
+
+    local fn, compileErr = loadstring(source)
+    if not fn then
+        warn("[SafeLoad] Compile error from " .. url .. ": " .. tostring(compileErr))
+        return nil
+    end
+
+    local success, result = pcall(fn)
+    if not success then
+        warn("[SafeLoad] Runtime error from " .. url .. ": " .. tostring(result))
+        return nil
+    end
+
+    return result
+end
+
+local Library = safeLoadUrl("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua")
+if not Library then
+    warn("Failed to load UI library — aborting.")
+    return
+end
+local Window = Library.CreateLib("Free Script Hub", "DarkTheme")
 
 -- MAIN -- 
 local Main = Window:NewTab("Main")
@@ -7,11 +66,11 @@ local MainSection = Main:NewSection("Main")
 
 
 MainSection:NewButton("FLY", "idk u fly i guess", function()
-    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/Fly.txt"))()
+    safeLoadUrl("https://cdn.wearedevs.net/scripts/Fly.txt")
 end)
 
 MainSection:NewButton("Aimbot", "cause u have shit aim im guessing", function()
-    loadstring(game:HttpGet("loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/WRD%20Aimbot.txt"))()"))()
+    safeLoadUrl("https://cdn.wearedevs.net/scripts/WRD%20Aimbot.txt")
 end)
 
 MainSection:NewToggle("Super Human", "strong", function(state)
@@ -25,45 +84,40 @@ MainSection:NewToggle("Super Human", "strong", function(state)
 end)
 
 MainSection:NewButton("Click Teleport (check desc)", "ctrl + click", function()
-    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/Click%20Teleport.txt"))()
+    safeLoadUrl("https://cdn.wearedevs.net/scripts/Click%20Teleport.txt")
 end)
 
 MainSection:NewButton("BTOOLS", "u shold know it", function()
-    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/BTools.txt"))()
+    safeLoadUrl("https://cdn.wearedevs.net/scripts/BTools.txt")
 end)
 
 MainSection:NewButton("TP", "tp to someone", function()
-    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/Teleport%20To%20Player.txt"))()
+    safeLoadUrl("https://cdn.wearedevs.net/scripts/Teleport%20To%20Player.txt")
 end)
 
 MainSection:NewButton("Infinte Jump", "jump a lot", function()
-    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/Infinite%20Jump.txt"))()
+    safeLoadUrl("https://cdn.wearedevs.net/scripts/Infinite%20Jump.txt")
 end)
 
 -- HUBS --
 local Hubs = Window:NewTab("Hubs")
 local HubsSection = Hubs:NewSection("Hubs")
 
-MainSection:NewButton("Owl hub", "OWL HUB", function()
-    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/OwlHub.txt"))()
+HubsSection:NewButton("Owl hub", "OWL HUB", function()
+    safeLoadUrl("https://cdn.wearedevs.net/scripts/OwlHub.txt")
 end)
 
-MainSection:NewButton("EZ Hub", "EZ HUB", function()
-    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/Ez%20Hub.txt"))()
+HubsSection:NewButton("EZ Hub", "EZ HUB", function()
+    safeLoadUrl("https://cdn.wearedevs.net/scripts/Ez%20Hub.txt")
 end)
 
-MainSection:NewButton("Rogue Hub", "ROGUE HUB", function()
-    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/Rogue%20Hub.txt"))()
+HubsSection:NewButton("Rogue Hub", "ROGUE HUB", function()
+    safeLoadUrl("https://cdn.wearedevs.net/scripts/Rogue%20Hub.txt")
 end)
 
 -- CREDITS -- 
 local Credits = Window:NewTab("Credits")
-local CreditsSection = Hubs:NewSection("Credits")
+local CreditsSection = Credits:NewSection("Credits")
 
-print("the cool develpoer that made this was zyq#9999")
-
-print("roblox script server: https://discord.gg/fz8nyX8FZW zyq's server: https://discord.gg/6SBjN6dT8j ")
-
-print("https://wearedevs.net/scripts for scripts")
-
-print(" THIS IS THE FREE VERSION! JOIN THE DISCORD FOR THE PAID VERSION")
+print("Script hub loaded successfully")
+print("THIS IS THE FREE VERSION! JOIN THE DISCORD FOR THE PAID VERSION")
