@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DVD Text Bouncer</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #111;
+    color: #fff;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* ---------- centered panel ---------- */
+  #panel {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 10;
+    transition: opacity .3s;
+  }
+  #panel.hidden { opacity: 0; pointer-events: none; }
+
+  #display-text {
+    font-size: 4rem;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+    transition: color .25s;
+    text-shadow: 0 0 20px currentColor;
+  }
+
+  /* controls */
+  .controls { margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: .6rem; justify-content: center; }
+  .controls button, .controls select, .controls input {
+    background: #222;
+    color: #fff;
+    border: 1px solid #555;
+    padding: .5rem 1rem;
+    border-radius: 6px;
+    font-size: .95rem;
+    cursor: pointer;
+    outline: none;
+  }
+  .controls button:hover { background: #333; }
+  .controls select, .controls input[type="text"] { min-width: 160px; }
+  #custom-text { min-width: 200px; }
+
+  .hint { margin-top: .8rem; color: #888; font-size: .85rem; }
+
+  /* ---------- bouncing element ---------- */
+  #bouncer {
+    position: absolute;
+    font-size: 3rem;
+    font-weight: bold;
+    white-space: nowrap;
+    display: none;
+    text-shadow: 0 0 20px currentColor;
+    z-index: 5;
+    user-select: none;
+  }
+
+  /* command prompt overlay */
+  #cmd-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.85);
+    z-index: 100;
+    justify-content: center; align-items: center;
+  }
+  #cmd-overlay.active { display: flex; }
+  #cmd-box {
+    background: #0c0c0c;
+    border: 1px solid #444;
+    border-radius: 8px;
+    width: 500px; max-width: 90vw;
+    padding: 1rem;
+    font-family: 'Consolas', 'Courier New', monospace;
+    color: #0f0;
+    font-size: .9rem;
+  }
+  #cmd-box .prompt { color: #0f0; }
+  #cmd-input {
+    background: transparent;
+    border: none;
+    color: #0f0;
+    font-family: inherit;
+    font-size: inherit;
+    outline: none;
+    width: 80%;
+  }
+  #cmd-log { max-height: 200px; overflow-y: auto; margin-bottom: .5rem; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+
+<!-- ===== JSON config (edit texts & colours here) ===== -->
+<script id="json-config" type="application/json">
+{
+  "texts": [
+    { "label": "DVD",       "value": "DVD" },
+    { "label": "Hello!",    "value": "Hello!" },
+    { "label": "Bounce!",   "value": "Bounce!" },
+    { "label": "zyqfree",   "value": "zyqfree" },
+    { "label": "Devin",     "value": "Devin" }
+  ],
+  "colors": [
+    "#ff0040", "#ff8800", "#ffe600",
+    "#00ff88", "#00ccff", "#8844ff",
+    "#ff44cc", "#ffffff", "#44ffcc"
+  ],
+  "bounceSpeed": 3,
+  "colorCycleMs": 800
+}
+</script>
+
+<!-- centered panel -->
+<div id="panel">
+  <div id="display-text">DVD</div>
+  <div class="controls">
+    <select id="text-select" title="Choose text"></select>
+    <input id="custom-text" type="text" placeholder="Or type custom text…">
+    <button id="btn-color">🎨 Change Color</button>
+    <button id="btn-bounce">▶ DVD Mode</button>
+    <button id="btn-cmd">⌨ Command Prompt</button>
+  </div>
+  <div class="hint">Click the text to cycle colour · Press <kbd>Space</kbd> to toggle DVD mode</div>
+</div>
+
+<!-- bouncing element -->
+<div id="bouncer">DVD</div>
+
+<!-- command prompt overlay -->
+<div id="cmd-overlay">
+  <div id="cmd-box">
+    <div id="cmd-log">DVD Text Bouncer — Command Prompt\nType "help" for commands.\n</div>
+    <span class="prompt">&gt; </span><input id="cmd-input" autofocus>
+  </div>
+</div>
+
+<script>
+/* ---------- load JSON config ---------- */
+const CONFIG = JSON.parse(document.getElementById('json-config').textContent);
+
+const displayText  = document.getElementById('display-text');
+const bouncer      = document.getElementById('bouncer');
+const textSelect   = document.getElementById('text-select');
+const customInput  = document.getElementById('custom-text');
+const btnColor     = document.getElementById('btn-color');
+const btnBounce    = document.getElementById('btn-bounce');
+const btnCmd       = document.getElementById('btn-cmd');
+const panel        = document.getElementById('panel');
+const cmdOverlay   = document.getElementById('cmd-overlay');
+const cmdInput     = document.getElementById('cmd-input');
+const cmdLog       = document.getElementById('cmd-log');
+
+let colorIdx  = 0;
+let bouncing  = false;
+let bx, by, dx, dy;
+let animId    = null;
+let colorTimer = null;
+
+/* ---------- populate dropdown ---------- */
+CONFIG.texts.forEach(t => {
+  const o = document.createElement('option');
+  o.value = t.value; o.textContent = t.label;
+  textSelect.appendChild(o);
+});
+
+/* ---------- helpers ---------- */
+function nextColor() {
+  colorIdx = (colorIdx + 1) % CONFIG.colors.length;
+  return CONFIG.colors[colorIdx];
+}
+
+function applyColor(c) {
+  displayText.style.color = c;
+  bouncer.style.color = c;
+}
+
+function setText(t) {
+  displayText.textContent = t;
+  bouncer.textContent = t;
+}
+
+/* ---------- events ---------- */
+textSelect.addEventListener('change', () => { setText(textSelect.value); customInput.value = ''; });
+customInput.addEventListener('input', () => { setText(customInput.value || 'DVD'); });
+
+btnColor.addEventListener('click', () => applyColor(nextColor()));
+displayText.addEventListener('click', () => applyColor(nextColor()));
+
+/* ---------- DVD bounce ---------- */
+function startBounce() {
+  bouncing = true;
+  btnBounce.textContent = '⏹ Stop DVD';
+  panel.classList.add('hidden');
+  bouncer.style.display = 'block';
+  bouncer.style.color = displayText.style.color || CONFIG.colors[0];
+
+  const rect = bouncer.getBoundingClientRect();
+  bx = (window.innerWidth  - rect.width)  / 2;
+  by = (window.innerHeight - rect.height) / 2;
+  dx = CONFIG.bounceSpeed;
+  dy = CONFIG.bounceSpeed;
+
+  colorTimer = setInterval(() => {
+    /* auto-cycle colour while bouncing */
+    bouncer.style.color = nextColor();
+  }, CONFIG.colorCycleMs);
+
+  animId = requestAnimationFrame(tick);
+}
+
+function stopBounce() {
+  bouncing = false;
+  btnBounce.textContent = '▶ DVD Mode';
+  panel.classList.remove('hidden');
+  bouncer.style.display = 'none';
+  cancelAnimationFrame(animId);
+  clearInterval(colorTimer);
+  displayText.style.color = bouncer.style.color;
+}
+
+function tick() {
+  const w = bouncer.offsetWidth;
+  const h = bouncer.offsetHeight;
+
+  bx += dx;
+  by += dy;
+
+  let hitWall = false;
+  if (bx <= 0)                      { bx = 0;                      dx = Math.abs(dx);  hitWall = true; }
+  if (bx + w >= window.innerWidth)  { bx = window.innerWidth - w;  dx = -Math.abs(dx); hitWall = true; }
+  if (by <= 0)                      { by = 0;                      dy = Math.abs(dy);  hitWall = true; }
+  if (by + h >= window.innerHeight) { by = window.innerHeight - h; dy = -Math.abs(dy); hitWall = true; }
+
+  if (hitWall) bouncer.style.color = nextColor();
+
+  bouncer.style.left = bx + 'px';
+  bouncer.style.top  = by + 'px';
+  animId = requestAnimationFrame(tick);
+}
+
+btnBounce.addEventListener('click', () => bouncing ? stopBounce() : startBounce());
+
+/* Space to toggle */
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT') {
+    e.preventDefault();
+    bouncing ? stopBounce() : startBounce();
+  }
+});
+
+/* click anywhere to stop bounce */
+document.addEventListener('click', e => {
+  if (bouncing && e.target === document.body) stopBounce();
+});
+
+/* ---------- command prompt ---------- */
+function openCmd()  { cmdOverlay.classList.add('active');    cmdInput.focus(); }
+function closeCmd() { cmdOverlay.classList.remove('active'); }
+
+btnCmd.addEventListener('click', openCmd);
+document.addEventListener('keydown', e => {
+  if (e.code === 'Backquote' && e.ctrlKey) { e.preventDefault(); cmdOverlay.classList.contains('active') ? closeCmd() : openCmd(); }
+  if (e.code === 'Escape') closeCmd();
+});
+
+function cmdPrint(msg) {
+  cmdLog.textContent += msg + '\n';
+  cmdLog.scrollTop = cmdLog.scrollHeight;
+}
+
+cmdInput.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const raw = cmdInput.value.trim();
+  cmdInput.value = '';
+  if (!raw) return;
+  cmdPrint('> ' + raw);
+  const parts = raw.split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+  const arg = parts.slice(1).join(' ');
+
+  switch (cmd) {
+    case 'help':
+      cmdPrint('Commands:\n  text <string>  – set display text\n  color <hex>    – set colour (e.g. #ff0000)\n  randomcolor    – pick a random colour\n  bounce         – start DVD mode\n  stop           – stop DVD mode\n  speed <n>      – set bounce speed (1-20)\n  list           – show available texts\n  clear          – clear log\n  exit           – close prompt');
+      break;
+    case 'text':
+      if (arg) { setText(arg); cmdPrint('Text set to: ' + arg); } else cmdPrint('Usage: text <string>');
+      break;
+    case 'color':
+      if (/^#[0-9a-f]{3,8}$/i.test(arg)) { applyColor(arg); cmdPrint('Color set to ' + arg); }
+      else cmdPrint('Usage: color #rrggbb');
+      break;
+    case 'randomcolor': {
+      const rc = '#' + Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0');
+      applyColor(rc); cmdPrint('Color set to ' + rc);
+      break;
+    }
+    case 'bounce':
+      if (!bouncing) startBounce(); cmdPrint('DVD mode started'); break;
+    case 'stop':
+      if (bouncing) stopBounce(); cmdPrint('DVD mode stopped'); break;
+    case 'speed': {
+      const n = parseFloat(arg);
+      if (n > 0 && n <= 20) {
+        CONFIG.bounceSpeed = n;
+        dx = dx > 0 ? n : -n;
+        dy = dy > 0 ? n : -n;
+        cmdPrint('Speed set to ' + n);
+      } else cmdPrint('Usage: speed <1-20>');
+      break;
+    }
+    case 'list':
+      cmdPrint('Available texts: ' + CONFIG.texts.map(t => t.label).join(', '));
+      break;
+    case 'clear':
+      cmdLog.textContent = ''; break;
+    case 'exit':
+      closeCmd(); break;
+    default:
+      cmdPrint('Unknown command: ' + cmd + '. Type "help" for commands.');
+  }
+});
+
+/* ---------- initial colour ---------- */
+applyColor(CONFIG.colors[0]);
+</script>
+</body>
+</html>
