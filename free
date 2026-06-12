@@ -1,64 +1,94 @@
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local Window = Library.CreateLib("https://discord.gg/fz8nyX8FZW made by zyq#9999", "DarkTheme")
 
+-- Helper: safely load and execute a remote script, warning on failure
+local function safeLoadUrl(url)
+    local success, result = pcall(function()
+        local source = game:HttpGet(url)
+        if not source or source == "" then
+            warn("[zyqfree] Empty response from: " .. url)
+            return
+        end
+        local fn, compileErr = loadstring(source)
+        if not fn then
+            warn("[zyqfree] Failed to compile script from: " .. url .. " | " .. tostring(compileErr))
+            return
+        end
+        fn()
+    end)
+    if not success then
+        warn("[zyqfree] Error loading script from: " .. url .. " | " .. tostring(result))
+    end
+end
+
 -- MAIN -- 
 local Main = Window:NewTab("Main")
 local MainSection = Main:NewSection("Main")
 
 
 MainSection:NewButton("FLY", "idk u fly i guess", function()
-    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/Fly.txt"))()
+    safeLoadUrl("https://cdn.wearedevs.net/scripts/Fly.txt")
 end)
 
 MainSection:NewButton("Aimbot", "cause u have shit aim im guessing", function()
-    loadstring(game:HttpGet("loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/WRD%20Aimbot.txt"))()"))()
+    safeLoadUrl("https://cdn.wearedevs.net/scripts/WRD%20Aimbot.txt")
 end)
 
 MainSection:NewToggle("Super Human", "strong", function(state)
+    local character = game.Players.LocalPlayer and game.Players.LocalPlayer.Character
+    if not character then
+        warn("[zyqfree] Character not loaded yet")
+        return
+    end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then
+        warn("[zyqfree] Humanoid not found on character")
+        return
+    end
     if state then
-        game.Players.LocalPlayer.Character.Humanoid.Walkspeed = 150
-        game.Players.LocalPlayer.Character.Humanoid.JumpPower = 150
+        humanoid.WalkSpeed = 150
+        humanoid.JumpPower = 150
     else
-        game.Players.LocalPlayer.Character.Humanoid.Walkspeed = 16
-        game.Players.LocalPlayer.Character.Humanoid.JumpPower = 50
+        humanoid.WalkSpeed = 16
+        humanoid.JumpPower = 50
     end
 end)
 
 MainSection:NewButton("Click Teleport (check desc)", "ctrl + click", function()
-    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/Click%20Teleport.txt"))()
+    safeLoadUrl("https://cdn.wearedevs.net/scripts/Click%20Teleport.txt")
 end)
 
 MainSection:NewButton("BTOOLS", "u shold know it", function()
-    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/BTools.txt"))()
+    safeLoadUrl("https://cdn.wearedevs.net/scripts/BTools.txt")
 end)
 
 MainSection:NewButton("TP", "tp to someone", function()
-    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/Teleport%20To%20Player.txt"))()
+    safeLoadUrl("https://cdn.wearedevs.net/scripts/Teleport%20To%20Player.txt")
 end)
 
 MainSection:NewButton("Infinte Jump", "jump a lot", function()
-    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/Infinite%20Jump.txt"))()
+    safeLoadUrl("https://cdn.wearedevs.net/scripts/Infinite%20Jump.txt")
 end)
 
 -- HUBS --
 local Hubs = Window:NewTab("Hubs")
 local HubsSection = Hubs:NewSection("Hubs")
 
-MainSection:NewButton("Owl hub", "OWL HUB", function()
-    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/OwlHub.txt"))()
+HubsSection:NewButton("Owl hub", "OWL HUB", function()
+    safeLoadUrl("https://cdn.wearedevs.net/scripts/OwlHub.txt")
 end)
 
-MainSection:NewButton("EZ Hub", "EZ HUB", function()
-    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/Ez%20Hub.txt"))()
+HubsSection:NewButton("EZ Hub", "EZ HUB", function()
+    safeLoadUrl("https://cdn.wearedevs.net/scripts/Ez%20Hub.txt")
 end)
 
-MainSection:NewButton("Rogue Hub", "ROGUE HUB", function()
-    loadstring(game:HttpGet("https://cdn.wearedevs.net/scripts/Rogue%20Hub.txt"))()
+HubsSection:NewButton("Rogue Hub", "ROGUE HUB", function()
+    safeLoadUrl("https://cdn.wearedevs.net/scripts/Rogue%20Hub.txt")
 end)
 
 -- CREDITS -- 
 local Credits = Window:NewTab("Credits")
-local CreditsSection = Hubs:NewSection("Credits")
+local CreditsSection = Credits:NewSection("Credits")
 
 print("the cool develpoer that made this was zyq#9999")
 
