@@ -7,13 +7,90 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    background: #111;
+    background: var(--bg, #111);
     color: #fff;
     font-family: 'Segoe UI', Arial, sans-serif;
     overflow: hidden;
     height: 100vh;
     width: 100vw;
+    transition: background .4s;
   }
+
+  /* ---------- auth overlay ---------- */
+  #auth-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.92);
+    z-index: 500;
+    display: flex;
+    justify-content: center; align-items: center;
+  }
+  #auth-overlay.hidden { display: none; }
+  #auth-box {
+    background: #1a1a2e;
+    border: 1px solid #444;
+    border-radius: 12px;
+    padding: 2rem;
+    width: 360px; max-width: 90vw;
+    text-align: center;
+  }
+  #auth-box h2 { margin-bottom: 1rem; color: #fff; font-size: 1.4rem; }
+  #auth-box .auth-tabs { display: flex; gap: 0; margin-bottom: 1.2rem; }
+  #auth-box .auth-tabs button {
+    flex: 1; padding: .6rem; border: none;
+    background: #222; color: #888; cursor: pointer;
+    font-size: .95rem; transition: all .2s;
+  }
+  #auth-box .auth-tabs button:first-child { border-radius: 6px 0 0 6px; }
+  #auth-box .auth-tabs button:last-child  { border-radius: 0 6px 6px 0; }
+  #auth-box .auth-tabs button.active { background: #0f3460; color: #fff; }
+  #auth-box input {
+    display: block; width: 100%;
+    padding: .6rem .8rem; margin-bottom: .8rem;
+    background: #16213e; border: 1px solid #444;
+    border-radius: 6px; color: #fff; font-size: .95rem; outline: none;
+  }
+  #auth-box input:focus { border-color: #0f3460; }
+  #auth-box .auth-submit {
+    width: 100%; padding: .7rem; border: none;
+    background: #0f3460; color: #fff; border-radius: 6px;
+    font-size: 1rem; cursor: pointer; transition: background .2s;
+  }
+  #auth-box .auth-submit:hover { background: #1a5276; }
+  #auth-box .auth-msg { margin-top: .6rem; font-size: .85rem; min-height: 1.2em; }
+  #auth-box .auth-msg.error { color: #ff4444; }
+  #auth-box .auth-msg.success { color: #44ff88; }
+  .tier-select { margin-bottom: .8rem; }
+  .tier-select label { display: block; margin-bottom: .4rem; color: #aaa; font-size: .85rem; text-align: left; }
+  .tier-select select {
+    width: 100%; padding: .6rem .8rem;
+    background: #16213e; border: 1px solid #444;
+    border-radius: 6px; color: #fff; font-size: .95rem; outline: none;
+  }
+  .tier-badge {
+    display: inline-block; padding: .15rem .5rem;
+    border-radius: 4px; font-size: .75rem; font-weight: bold;
+    text-transform: uppercase; letter-spacing: .05em;
+  }
+  .tier-free    { background: #555; color: #ccc; }
+  .tier-pro     { background: #0f3460; color: #4fc3f7; }
+  .tier-premium { background: #b8860b; color: #fff8dc; }
+
+  /* ---------- top bar ---------- */
+  #top-bar {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: .4rem .8rem;
+    background: rgba(0,0,0,.4);
+    z-index: 20;
+    font-size: .8rem;
+  }
+  #top-bar .user-info { display: flex; align-items: center; gap: .5rem; }
+  #top-bar button {
+    background: #222; color: #fff; border: 1px solid #555;
+    padding: .3rem .6rem; border-radius: 4px; cursor: pointer;
+    font-size: .8rem;
+  }
+  #top-bar button:hover { background: #333; }
 
   /* ---------- centered panel ---------- */
   #panel {
@@ -27,15 +104,14 @@
   #panel.hidden { opacity: 0; pointer-events: none; }
 
   #display-text {
-    font-size: 4rem;
+    font-size: var(--font-size, 4rem);
     font-weight: bold;
     cursor: pointer;
     user-select: none;
-    transition: color .25s;
+    transition: color .6s ease, text-shadow .6s ease, font-size .3s;
     text-shadow: 0 0 20px currentColor;
   }
 
-  /* controls */
   .controls { margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: .6rem; justify-content: center; }
   .controls button, .controls select, .controls input {
     background: #222;
@@ -50,20 +126,97 @@
   .controls button:hover { background: #333; }
   .controls select, .controls input[type="text"] { min-width: 160px; }
   #custom-text { min-width: 200px; }
+  .controls button:disabled, .controls select:disabled, .controls input:disabled {
+    opacity: .4; cursor: not-allowed;
+  }
 
   .hint { margin-top: .8rem; color: #888; font-size: .85rem; }
 
   /* ---------- bouncing element ---------- */
   #bouncer {
     position: absolute;
-    font-size: 3rem;
+    font-size: var(--font-size, 3rem);
     font-weight: bold;
     white-space: nowrap;
     display: none;
+    transition: color .6s ease, text-shadow .6s ease;
     text-shadow: 0 0 20px currentColor;
     z-index: 5;
     user-select: none;
   }
+
+  /* ---------- settings panel ---------- */
+  #settings-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.85);
+    z-index: 200;
+    justify-content: center; align-items: center;
+  }
+  #settings-overlay.active { display: flex; }
+  #settings-box {
+    background: #1a1a2e;
+    border: 1px solid #444;
+    border-radius: 12px;
+    width: 480px; max-width: 90vw;
+    max-height: 80vh; overflow-y: auto;
+    padding: 1.5rem;
+  }
+  #settings-box h2 { margin-bottom: 1rem; text-align: center; }
+  .setting-group {
+    margin-bottom: 1.2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #333;
+  }
+  .setting-group:last-child { border-bottom: none; }
+  .setting-group h3 {
+    font-size: .9rem; color: #888;
+    text-transform: uppercase; letter-spacing: .08em;
+    margin-bottom: .6rem;
+  }
+  .setting-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: .5rem;
+  }
+  .setting-row label { font-size: .9rem; }
+  .setting-row input[type="range"] { width: 140px; }
+  .setting-row input[type="color"] {
+    width: 36px; height: 28px; border: 1px solid #555;
+    border-radius: 4px; cursor: pointer; background: transparent;
+  }
+  .setting-row select {
+    background: #222; color: #fff; border: 1px solid #555;
+    padding: .3rem .5rem; border-radius: 4px; font-size: .85rem;
+  }
+  .setting-row .value-display {
+    font-size: .8rem; color: #aaa; min-width: 30px; text-align: right;
+  }
+  .locked-label {
+    font-size: .7rem; color: #ff8800; margin-left: .4rem;
+  }
+  .theme-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem;
+  }
+  .theme-btn {
+    padding: .5rem; border: 2px solid #333; border-radius: 8px;
+    background: #222; color: #fff; cursor: pointer; font-size: .8rem;
+    text-align: center; transition: border-color .2s;
+  }
+  .theme-btn:hover { border-color: #666; }
+  .theme-btn.active { border-color: #4fc3f7; }
+  .theme-btn:disabled { opacity: .35; cursor: not-allowed; }
+  .theme-preview {
+    display: flex; gap: 3px; justify-content: center; margin-bottom: .3rem;
+  }
+  .theme-preview span {
+    width: 12px; height: 12px; border-radius: 50%;
+  }
+  #settings-box .close-btn {
+    display: block; margin: 1rem auto 0; padding: .5rem 2rem;
+    background: #0f3460; color: #fff; border: none;
+    border-radius: 6px; cursor: pointer; font-size: .9rem;
+  }
+  #settings-box .close-btn:hover { background: #1a5276; }
 
   /* command prompt overlay */
   #cmd-overlay {
@@ -95,11 +248,17 @@
     width: 80%;
   }
   #cmd-log { max-height: 200px; overflow-y: auto; margin-bottom: .5rem; white-space: pre-wrap; }
+
+  /* footer timer */
+  .footer-timer {
+    position: fixed; bottom: .5rem; right: .8rem;
+    font-size: .75rem; color: #555; z-index: 2;
+  }
 </style>
 </head>
 <body>
 
-<!-- ===== JSON config (edit texts & colours here) ===== -->
+<!-- ===== JSON config ===== -->
 <script id="json-config" type="application/json">
 {
   "texts": [
@@ -109,15 +268,71 @@
     { "label": "zyqfree",   "value": "zyqfree" },
     { "label": "Devin",     "value": "Devin" }
   ],
-  "colors": [
-    "#ff0040", "#ff8800", "#ffe600",
-    "#00ff88", "#00ccff", "#8844ff",
-    "#ff44cc", "#ffffff", "#44ffcc"
-  ],
+  "themes": {
+    "neon":       { "label": "Neon",       "colors": ["#ff0040","#ff8800","#ffe600","#00ff88","#00ccff","#8844ff","#ff44cc","#ffffff","#44ffcc"], "tier": "free" },
+    "monochrome": { "label": "Monochrome", "colors": ["#ffffff","#cccccc","#999999","#666666","#ffffff","#dddddd","#aaaaaa","#888888","#ffffff"], "tier": "free" },
+    "pastel":     { "label": "Pastel",     "colors": ["#ffb3ba","#ffdfba","#ffffba","#baffc9","#bae1ff","#d4baff","#ffbaf3","#ffffff","#c9ffba"], "tier": "pro" },
+    "ocean":      { "label": "Ocean",      "colors": ["#006994","#00b4d8","#0077b6","#48cae4","#90e0ef","#ade8f4","#caf0f8","#023e8a","#03045e"], "tier": "pro" },
+    "fire":       { "label": "Fire",       "colors": ["#ff0000","#ff4500","#ff6347","#ff8c00","#ffa500","#ffd700","#ffff00","#ff4500","#dc143c"], "tier": "pro" },
+    "galaxy":     { "label": "Galaxy",     "colors": ["#6a0dad","#9b30ff","#da70d6","#ff69b4","#4169e1","#1e90ff","#00bfff","#e6e6fa","#ff1493"], "tier": "premium" },
+    "matrix":     { "label": "Matrix",     "colors": ["#00ff00","#00cc00","#009900","#00ff66","#33ff33","#66ff66","#00ff00","#00dd00","#00bb00"], "tier": "premium" },
+    "custom":     { "label": "Custom",     "colors": ["#ff0040","#ff8800","#ffe600","#00ff88","#00ccff","#8844ff","#ff44cc","#ffffff","#44ffcc"], "tier": "premium" }
+  },
+  "tiers": {
+    "free":    { "label": "Free",    "maxSpeed": 5,  "features": ["basic_text","basic_themes","bounce"] },
+    "pro":     { "label": "Pro",     "maxSpeed": 15, "features": ["basic_text","all_themes","bounce","custom_text","command_prompt","font_size"] },
+    "premium": { "label": "Premium", "maxSpeed": 20, "features": ["basic_text","all_themes","bounce","custom_text","command_prompt","font_size","custom_colors","bg_color","speed_unlimited"] }
+  },
   "bounceSpeed": 3,
-  "colorCycleMs": 800
+  "colorCycleMs": 1200
 }
 </script>
+
+<!-- auth overlay -->
+<div id="auth-overlay">
+  <div id="auth-box">
+    <h2>🎬 DVD Text Bouncer</h2>
+    <div class="auth-tabs">
+      <button id="tab-login" class="active" onclick="switchAuthTab('login')">Login</button>
+      <button id="tab-register" onclick="switchAuthTab('register')">Register</button>
+    </div>
+    <div id="auth-form-login">
+      <input id="login-user" type="text" placeholder="Username" autocomplete="username">
+      <input id="login-pass" type="password" placeholder="Password" autocomplete="current-password">
+      <button class="auth-submit" onclick="doLogin()">Login</button>
+    </div>
+    <div id="auth-form-register" style="display:none">
+      <input id="reg-user" type="text" placeholder="Username" autocomplete="username">
+      <input id="reg-pass" type="password" placeholder="Password" autocomplete="new-password">
+      <input id="reg-pass2" type="password" placeholder="Confirm Password" autocomplete="new-password">
+      <div class="tier-select">
+        <label>Choose your tier:</label>
+        <select id="reg-tier">
+          <option value="free">🆓 Free — Basic themes, speed 1-5</option>
+          <option value="pro">⭐ Pro — All themes, custom text, command prompt</option>
+          <option value="premium">👑 Premium — Everything unlocked</option>
+        </select>
+      </div>
+      <button class="auth-submit" onclick="doRegister()">Create Account</button>
+    </div>
+    <div id="auth-msg" class="auth-msg"></div>
+    <div style="margin-top:1rem;font-size:.75rem;color:#666">
+      Guest mode: <a href="#" onclick="guestLogin(); return false" style="color:#4fc3f7">Continue as Guest (Free tier)</a>
+    </div>
+  </div>
+</div>
+
+<!-- top bar -->
+<div id="top-bar" style="display:none">
+  <div class="user-info">
+    <span id="user-display"></span>
+    <span id="tier-display"></span>
+  </div>
+  <div style="display:flex;gap:.4rem">
+    <button id="btn-settings" onclick="openSettings()">⚙ Settings</button>
+    <button onclick="doLogout()">Logout</button>
+  </div>
+</div>
 
 <!-- centered panel -->
 <div id="panel">
@@ -135,6 +350,61 @@
 <!-- bouncing element -->
 <div id="bouncer">DVD</div>
 
+<!-- settings overlay -->
+<div id="settings-overlay">
+  <div id="settings-box">
+    <h2>⚙ Settings</h2>
+
+    <div class="setting-group">
+      <h3>🎨 Color Theme</h3>
+      <div id="theme-grid" class="theme-grid"></div>
+    </div>
+
+    <div class="setting-group">
+      <h3>🏎 Bounce Speed</h3>
+      <div class="setting-row">
+        <label>Speed</label>
+        <input id="set-speed" type="range" min="1" max="20" value="3">
+        <span id="speed-val" class="value-display">3</span>
+      </div>
+    </div>
+
+    <div class="setting-group">
+      <h3>🔤 Font Size</h3>
+      <div class="setting-row">
+        <label>Size</label>
+        <input id="set-fontsize" type="range" min="1" max="8" value="4" step="0.5">
+        <span id="fontsize-val" class="value-display">4rem</span>
+      </div>
+    </div>
+
+    <div class="setting-group">
+      <h3>⏱ Color Cycle Speed</h3>
+      <div class="setting-row">
+        <label>Interval</label>
+        <input id="set-cycle" type="range" min="200" max="3000" value="1200" step="100">
+        <span id="cycle-val" class="value-display">1.2s</span>
+      </div>
+    </div>
+
+    <div class="setting-group">
+      <h3>🎭 Background</h3>
+      <div class="setting-row">
+        <label>Background Color</label>
+        <input id="set-bg" type="color" value="#111111">
+      </div>
+    </div>
+
+    <div class="setting-group" id="custom-colors-group">
+      <h3>🌈 Custom Colors <span class="locked-label" id="custom-lock">(Premium)</span></h3>
+      <div id="custom-color-list" style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.5rem"></div>
+      <button id="add-custom-color" style="background:#222;color:#fff;border:1px solid #555;padding:.3rem .8rem;border-radius:4px;cursor:pointer;font-size:.8rem">+ Add Color</button>
+    </div>
+
+    <button class="close-btn" onclick="closeSettings()">Close</button>
+  </div>
+</div>
+
 <!-- command prompt overlay -->
 <div id="cmd-overlay">
   <div id="cmd-box">
@@ -143,39 +413,169 @@
   </div>
 </div>
 
+<div class="footer-timer" id="timer"></div>
+
 <script>
-/* ---------- load JSON config ---------- */
+/* ========== CONFIG ========== */
 const CONFIG = JSON.parse(document.getElementById('json-config').textContent);
 
-const displayText  = document.getElementById('display-text');
-const bouncer      = document.getElementById('bouncer');
-const textSelect   = document.getElementById('text-select');
-const customInput  = document.getElementById('custom-text');
-const btnColor     = document.getElementById('btn-color');
-const btnBounce    = document.getElementById('btn-bounce');
-const btnCmd       = document.getElementById('btn-cmd');
-const panel        = document.getElementById('panel');
-const cmdOverlay   = document.getElementById('cmd-overlay');
-const cmdInput     = document.getElementById('cmd-input');
-const cmdLog       = document.getElementById('cmd-log');
+/* ========== AUTH SYSTEM ========== */
+function getUsers() { return JSON.parse(localStorage.getItem('dvd_users') || '{}'); }
+function saveUsers(u) { localStorage.setItem('dvd_users', JSON.stringify(u)); }
 
-let colorIdx  = 0;
-let bouncing  = false;
+async function hashPass(pw) {
+  const enc = new TextEncoder().encode(pw);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function switchAuthTab(tab) {
+  document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+  document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+  document.getElementById('auth-form-login').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('auth-form-register').style.display = tab === 'register' ? 'block' : 'none';
+  document.getElementById('auth-msg').textContent = '';
+}
+
+function authMsg(msg, isError) {
+  const el = document.getElementById('auth-msg');
+  el.textContent = msg;
+  el.className = 'auth-msg ' + (isError ? 'error' : 'success');
+}
+
+async function doLogin() {
+  const user = document.getElementById('login-user').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  if (!user || !pass) return authMsg('Fill in all fields', true);
+  const users = getUsers();
+  if (!users[user]) return authMsg('User not found', true);
+  const hash = await hashPass(pass);
+  if (users[user].hash !== hash) return authMsg('Wrong password', true);
+  sessionStorage.setItem('dvd_current_user', user);
+  enterApp(user, users[user].tier);
+}
+
+async function doRegister() {
+  const user = document.getElementById('reg-user').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  const pass2 = document.getElementById('reg-pass2').value;
+  const tier = document.getElementById('reg-tier').value;
+  if (!user || !pass) return authMsg('Fill in all fields', true);
+  if (user.length < 2) return authMsg('Username must be at least 2 characters', true);
+  if (pass.length < 4) return authMsg('Password must be at least 4 characters', true);
+  if (pass !== pass2) return authMsg('Passwords do not match', true);
+  const users = getUsers();
+  if (users[user]) return authMsg('Username already taken', true);
+  const hash = await hashPass(pass);
+  users[user] = { hash, tier, settings: {} };
+  saveUsers(users);
+  sessionStorage.setItem('dvd_current_user', user);
+  enterApp(user, tier);
+}
+
+function guestLogin() {
+  sessionStorage.setItem('dvd_current_user', '__guest__');
+  enterApp('Guest', 'free');
+}
+
+function doLogout() {
+  sessionStorage.removeItem('dvd_current_user');
+  if (bouncing) stopBounce();
+  document.getElementById('auth-overlay').classList.remove('hidden');
+  document.getElementById('top-bar').style.display = 'none';
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('auth-msg').textContent = '';
+}
+
+let currentUser = null;
+let currentTier = 'free';
+
+function enterApp(user, tier) {
+  currentUser = user;
+  currentTier = tier;
+  document.getElementById('auth-overlay').classList.add('hidden');
+  document.getElementById('top-bar').style.display = 'flex';
+  document.getElementById('user-display').textContent = user;
+  const badge = document.getElementById('tier-display');
+  badge.textContent = CONFIG.tiers[tier].label;
+  badge.className = 'tier-badge tier-' + tier;
+  applyTierRestrictions();
+  loadUserSettings();
+}
+
+function hasFeat(f) { return CONFIG.tiers[currentTier].features.includes(f); }
+
+function applyTierRestrictions() {
+  customInput.disabled = !hasFeat('custom_text');
+  btnCmd.disabled = !hasFeat('command_prompt');
+
+  const maxSpd = CONFIG.tiers[currentTier].maxSpeed;
+  document.getElementById('set-speed').max = maxSpd;
+  if (CONFIG.bounceSpeed > maxSpd) {
+    CONFIG.bounceSpeed = maxSpd;
+    document.getElementById('set-speed').value = maxSpd;
+    document.getElementById('speed-val').textContent = maxSpd;
+  }
+}
+
+/* ========== USER SETTINGS PERSISTENCE ========== */
+function getUserSettings() {
+  if (currentUser === 'Guest' || currentUser === '__guest__') return {};
+  const users = getUsers();
+  return (users[currentUser] && users[currentUser].settings) || {};
+}
+
+function saveUserSetting(key, value) {
+  if (currentUser === 'Guest' || currentUser === '__guest__') return;
+  const users = getUsers();
+  if (!users[currentUser]) return;
+  users[currentUser].settings[key] = value;
+  saveUsers(users);
+}
+
+function loadUserSettings() {
+  const s = getUserSettings();
+  if (s.theme) selectTheme(s.theme, true);
+  if (s.speed) { CONFIG.bounceSpeed = s.speed; document.getElementById('set-speed').value = s.speed; document.getElementById('speed-val').textContent = s.speed; }
+  if (s.fontSize) { setFontSize(s.fontSize, true); }
+  if (s.cycleMs) { CONFIG.colorCycleMs = s.cycleMs; document.getElementById('set-cycle').value = s.cycleMs; document.getElementById('cycle-val').textContent = (s.cycleMs / 1000).toFixed(1) + 's'; }
+  if (s.bgColor) { document.body.style.setProperty('--bg', s.bgColor); document.getElementById('set-bg').value = s.bgColor; }
+  if (s.customColors && hasFeat('custom_colors')) { activeThemeColors = s.customColors; rebuildCustomColorUI(); }
+}
+
+/* ========== DOM REFS ========== */
+const displayText = document.getElementById('display-text');
+const bouncer     = document.getElementById('bouncer');
+const textSelect  = document.getElementById('text-select');
+const customInput = document.getElementById('custom-text');
+const btnColor    = document.getElementById('btn-color');
+const btnBounce   = document.getElementById('btn-bounce');
+const btnCmd      = document.getElementById('btn-cmd');
+const panel       = document.getElementById('panel');
+const cmdOverlay  = document.getElementById('cmd-overlay');
+const cmdInput    = document.getElementById('cmd-input');
+const cmdLog      = document.getElementById('cmd-log');
+
+let colorIdx   = 0;
+let bouncing   = false;
 let bx, by, dx, dy;
-let animId    = null;
+let animId     = null;
 let colorTimer = null;
+let activeTheme = 'neon';
+let activeThemeColors = CONFIG.themes.neon.colors.slice();
 
-/* ---------- populate dropdown ---------- */
+/* ========== POPULATE DROPDOWN ========== */
 CONFIG.texts.forEach(t => {
   const o = document.createElement('option');
   o.value = t.value; o.textContent = t.label;
   textSelect.appendChild(o);
 });
 
-/* ---------- helpers ---------- */
+/* ========== HELPERS ========== */
 function nextColor() {
-  colorIdx = (colorIdx + 1) % CONFIG.colors.length;
-  return CONFIG.colors[colorIdx];
+  colorIdx = (colorIdx + 1) % activeThemeColors.length;
+  return activeThemeColors[colorIdx];
 }
 
 function applyColor(c) {
@@ -188,20 +588,27 @@ function setText(t) {
   bouncer.textContent = t;
 }
 
-/* ---------- events ---------- */
+function setFontSize(rem, noSave) {
+  document.documentElement.style.setProperty('--font-size', rem + 'rem');
+  document.getElementById('set-fontsize').value = rem;
+  document.getElementById('fontsize-val').textContent = rem + 'rem';
+  if (!noSave) saveUserSetting('fontSize', rem);
+}
+
+/* ========== EVENTS ========== */
 textSelect.addEventListener('change', () => { setText(textSelect.value); customInput.value = ''; });
 customInput.addEventListener('input', () => { setText(customInput.value || 'DVD'); });
 
 btnColor.addEventListener('click', () => applyColor(nextColor()));
 displayText.addEventListener('click', () => applyColor(nextColor()));
 
-/* ---------- DVD bounce ---------- */
+/* ========== DVD BOUNCE ========== */
 function startBounce() {
   bouncing = true;
   btnBounce.textContent = '⏹ Stop DVD';
   panel.classList.add('hidden');
   bouncer.style.display = 'block';
-  bouncer.style.color = displayText.style.color || CONFIG.colors[0];
+  bouncer.style.color = displayText.style.color || activeThemeColors[0];
 
   const rect = bouncer.getBoundingClientRect();
   bx = (window.innerWidth  - rect.width)  / 2;
@@ -210,7 +617,6 @@ function startBounce() {
   dy = CONFIG.bounceSpeed;
 
   colorTimer = setInterval(() => {
-    /* auto-cycle colour while bouncing */
     bouncer.style.color = nextColor();
   }, CONFIG.colorCycleMs);
 
@@ -249,7 +655,6 @@ function tick() {
 
 btnBounce.addEventListener('click', () => bouncing ? stopBounce() : startBounce());
 
-/* Space to toggle */
 document.addEventListener('keydown', e => {
   if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT') {
     e.preventDefault();
@@ -257,19 +662,141 @@ document.addEventListener('keydown', e => {
   }
 });
 
-/* click anywhere to stop bounce */
 document.addEventListener('click', e => {
   if (bouncing && e.target === document.body) stopBounce();
 });
 
-/* ---------- command prompt ---------- */
-function openCmd()  { cmdOverlay.classList.add('active');    cmdInput.focus(); }
+/* ========== SETTINGS ========== */
+function openSettings() {
+  document.getElementById('settings-overlay').classList.add('active');
+  buildThemeGrid();
+  applyTierToSettings();
+}
+
+function closeSettings() {
+  document.getElementById('settings-overlay').classList.remove('active');
+}
+
+function buildThemeGrid() {
+  const grid = document.getElementById('theme-grid');
+  grid.innerHTML = '';
+  for (const [key, theme] of Object.entries(CONFIG.themes)) {
+    if (key === 'custom' && !hasFeat('custom_colors')) continue;
+    const btn = document.createElement('button');
+    btn.className = 'theme-btn' + (key === activeTheme ? ' active' : '');
+    const tierNeeded = theme.tier;
+    const unlocked = tierNeeded === 'free' || (tierNeeded === 'pro' && (currentTier === 'pro' || currentTier === 'premium')) || (tierNeeded === 'premium' && currentTier === 'premium');
+    btn.disabled = !unlocked;
+
+    let preview = '<div class="theme-preview">';
+    theme.colors.slice(0, 5).forEach(c => { preview += `<span style="background:${c}"></span>`; });
+    preview += '</div>';
+    let label = theme.label;
+    if (!unlocked) label += ' 🔒';
+    btn.innerHTML = preview + label;
+    btn.addEventListener('click', () => { if (unlocked) selectTheme(key); });
+    grid.appendChild(btn);
+  }
+}
+
+function selectTheme(key, noSave) {
+  if (!CONFIG.themes[key]) return;
+  activeTheme = key;
+  activeThemeColors = CONFIG.themes[key].colors.slice();
+  colorIdx = 0;
+  applyColor(activeThemeColors[0]);
+  if (!noSave) saveUserSetting('theme', key);
+  buildThemeGrid();
+}
+
+function applyTierToSettings() {
+  const fsSlider = document.getElementById('set-fontsize');
+  fsSlider.disabled = !hasFeat('font_size');
+
+  const bgInput = document.getElementById('set-bg');
+  bgInput.disabled = !hasFeat('bg_color');
+
+  const customGroup = document.getElementById('custom-colors-group');
+  const customLock = document.getElementById('custom-lock');
+  if (hasFeat('custom_colors')) {
+    customLock.style.display = 'none';
+    document.getElementById('add-custom-color').disabled = false;
+  } else {
+    customLock.style.display = 'inline';
+    document.getElementById('add-custom-color').disabled = true;
+  }
+  rebuildCustomColorUI();
+}
+
+function rebuildCustomColorUI() {
+  const container = document.getElementById('custom-color-list');
+  container.innerHTML = '';
+  if (activeTheme !== 'custom') return;
+  activeThemeColors.forEach((c, i) => {
+    const inp = document.createElement('input');
+    inp.type = 'color'; inp.value = c;
+    inp.style.cssText = 'width:30px;height:24px;border:1px solid #555;border-radius:4px;cursor:pointer';
+    inp.addEventListener('input', () => {
+      activeThemeColors[i] = inp.value;
+      saveUserSetting('customColors', activeThemeColors.slice());
+    });
+    container.appendChild(inp);
+  });
+}
+
+document.getElementById('add-custom-color').addEventListener('click', () => {
+  if (!hasFeat('custom_colors') || activeTheme !== 'custom') return;
+  activeThemeColors.push('#ffffff');
+  rebuildCustomColorUI();
+  saveUserSetting('customColors', activeThemeColors.slice());
+});
+
+/* settings controls */
+document.getElementById('set-speed').addEventListener('input', e => {
+  const v = parseFloat(e.target.value);
+  CONFIG.bounceSpeed = v;
+  document.getElementById('speed-val').textContent = v;
+  if (bouncing) {
+    dx = dx > 0 ? v : -v;
+    dy = dy > 0 ? v : -v;
+  }
+  saveUserSetting('speed', v);
+});
+
+document.getElementById('set-fontsize').addEventListener('input', e => {
+  if (!hasFeat('font_size')) return;
+  setFontSize(parseFloat(e.target.value));
+});
+
+document.getElementById('set-cycle').addEventListener('input', e => {
+  const v = parseInt(e.target.value);
+  CONFIG.colorCycleMs = v;
+  document.getElementById('cycle-val').textContent = (v / 1000).toFixed(1) + 's';
+  if (bouncing && colorTimer) {
+    clearInterval(colorTimer);
+    colorTimer = setInterval(() => { bouncer.style.color = nextColor(); }, v);
+  }
+  saveUserSetting('cycleMs', v);
+});
+
+document.getElementById('set-bg').addEventListener('input', e => {
+  if (!hasFeat('bg_color')) return;
+  document.body.style.setProperty('--bg', e.target.value);
+  saveUserSetting('bgColor', e.target.value);
+});
+
+/* ========== COMMAND PROMPT ========== */
+function openCmd()  {
+  if (!hasFeat('command_prompt')) return;
+  cmdOverlay.classList.add('active');
+  cmdInput.focus();
+}
 function closeCmd() { cmdOverlay.classList.remove('active'); }
 
 btnCmd.addEventListener('click', openCmd);
 document.addEventListener('keydown', e => {
   if (e.code === 'Backquote' && e.ctrlKey) { e.preventDefault(); cmdOverlay.classList.contains('active') ? closeCmd() : openCmd(); }
-  if (e.code === 'Escape') closeCmd();
+  if (e.code === 'Escape') { closeCmd(); closeSettings(); }
 });
 
 function cmdPrint(msg) {
@@ -289,7 +816,7 @@ cmdInput.addEventListener('keydown', e => {
 
   switch (cmd) {
     case 'help':
-      cmdPrint('Commands:\n  text <string>  – set display text\n  color <hex>    – set colour (e.g. #ff0000)\n  randomcolor    – pick a random colour\n  bounce         – start DVD mode\n  stop           – stop DVD mode\n  speed <n>      – set bounce speed (1-20)\n  list           – show available texts\n  clear          – clear log\n  exit           – close prompt');
+      cmdPrint('Commands:\n  text <string>  – set display text\n  color <hex>    – set colour\n  randomcolor    – pick a random colour\n  bounce         – start DVD mode\n  stop           – stop DVD mode\n  speed <n>      – set bounce speed\n  theme <name>   – switch theme\n  themes         – list themes\n  tier           – show current tier\n  list           – show available texts\n  clear          – clear log\n  exit           – close prompt');
       break;
     case 'text':
       if (arg) { setText(arg); cmdPrint('Text set to: ' + arg); } else cmdPrint('Usage: text <string>');
@@ -309,14 +836,36 @@ cmdInput.addEventListener('keydown', e => {
       if (bouncing) stopBounce(); cmdPrint('DVD mode stopped'); break;
     case 'speed': {
       const n = parseFloat(arg);
-      if (n > 0 && n <= 20) {
+      const maxSpd = CONFIG.tiers[currentTier].maxSpeed;
+      if (n > 0 && n <= maxSpd) {
         CONFIG.bounceSpeed = n;
         dx = dx > 0 ? n : -n;
         dy = dy > 0 ? n : -n;
         cmdPrint('Speed set to ' + n);
-      } else cmdPrint('Usage: speed <1-20>');
+      } else cmdPrint('Usage: speed <1-' + maxSpd + '>');
       break;
     }
+    case 'theme':
+      if (!arg) { cmdPrint('Usage: theme <name>'); break; }
+      if (CONFIG.themes[arg.toLowerCase()]) {
+        const key = arg.toLowerCase();
+        const t = CONFIG.themes[key];
+        const unlocked = t.tier === 'free' || (t.tier === 'pro' && (currentTier === 'pro' || currentTier === 'premium')) || (t.tier === 'premium' && currentTier === 'premium');
+        if (unlocked) { selectTheme(key); cmdPrint('Theme set to ' + t.label); }
+        else cmdPrint('Theme "' + t.label + '" requires ' + t.tier + ' tier');
+      } else cmdPrint('Unknown theme. Type "themes" to list.');
+      break;
+    case 'themes':
+      cmdPrint('Available themes:');
+      for (const [k, t] of Object.entries(CONFIG.themes)) {
+        if (k === 'custom') continue;
+        const unlocked = t.tier === 'free' || (t.tier === 'pro' && (currentTier === 'pro' || currentTier === 'premium')) || (t.tier === 'premium' && currentTier === 'premium');
+        cmdPrint('  ' + k + ' (' + t.tier + ')' + (unlocked ? '' : ' 🔒'));
+      }
+      break;
+    case 'tier':
+      cmdPrint('Your tier: ' + CONFIG.tiers[currentTier].label + '\nMax speed: ' + CONFIG.tiers[currentTier].maxSpeed + '\nFeatures: ' + CONFIG.tiers[currentTier].features.join(', '));
+      break;
     case 'list':
       cmdPrint('Available texts: ' + CONFIG.texts.map(t => t.label).join(', '));
       break;
@@ -329,8 +878,30 @@ cmdInput.addEventListener('keydown', e => {
   }
 });
 
-/* ---------- initial colour ---------- */
-applyColor(CONFIG.colors[0]);
+/* auth enter key */
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('reg-pass2').addEventListener('keydown', e => { if (e.key === 'Enter') doRegister(); });
+
+/* ========== INITIAL COLOUR ========== */
+applyColor(activeThemeColors[0]);
+
+/* ========== AUTO-LOGIN ========== */
+(function() {
+  const saved = sessionStorage.getItem('dvd_current_user');
+  if (saved === '__guest__') {
+    guestLogin();
+  } else if (saved) {
+    const users = getUsers();
+    if (users[saved]) enterApp(saved, users[saved].tier);
+  }
+})();
+
+/* ========== TIMER ========== */
+const startTime = Date.now();
+setInterval(() => {
+  const s = ((Date.now() - startTime) / 1000).toFixed(2);
+  document.getElementById('timer').textContent = 'Session: ' + s + 's';
+}, 100);
 </script>
 </body>
 </html>
